@@ -1,0 +1,28 @@
+=== MATERIJALI I SIROVINE ===
+ID,Kategorija,Naziv Materijala,Tip,Širina (mm),Visina (mm),Jedinica Mjere,Nabavna Cijena (EUR),Zaliha / Napomena
+MAT-01,Aračni tisak,Kreda sjaj 135g,arak,450,320,arak,0.05,Format SRA3/320x450
+MAT-02,Aračni tisak,Kreda mat 300g,arak,450,320,arak,0.09,Format SRA3/320x450
+MAT-03,Aračni tisak,Samoljepljivi muflon (papir),arak,450,320,arak,0.15,Za naljepnice iz arka
+MAT-04,Aračni tisak,Sintetički vodootporni papir,arak,450,320,arak,0.35,Za jelovnike/izdržljivo
+MAT-05,Veliki format,Monomerni PVC 100g (Mat/Sjaj),rola,1370,0,m2,2.20,Epson SC-S40610
+MAT-06,Veliki format,Polimerni PVC (Dugotrajni),rola,1370,0,m2,4.50,Epson SC-S40610
+MAT-07,Veliki format,Banner / Cerada 510g,rola,1600,0,m2,3.00,Epson SC-S40610
+MAT-08,Veliki format,Citylight papir 150g,rola,1370,0,m2,1.10,Epson SC-S40610
+MAT-09,Veliki format,Rupičasta folija (One Way Vision),rola,1370,0,m2,4.80,Za izloge / vozila
+MAT-10,Laminacija,Folija za hladnu laminaciju 80mkr,rola,1370,0,m2,1.20,Za velikodformatni PVC
+
+=== STROJEVI I TEHNOLOGIJE ===
+ID,Stroj / Tehnologija,Tip Izračuna,Fiksna Priprema / Setup (EUR),Cijena Prolaza / Boje (EUR),Preporučena Marža (%)
+STR-01,Konica Minolta C4065,klik_arak,3.00,0.035,60
+STR-02,Epson SC-S40610,boja_m2,5.00,1.200,70
+STR-03,Summa D140,dužni_metar,3.00,0.300,80
+STR-04,Ideal 5255 Nož,po_nalogu,2.00,0.010,100
+
+=== DORADA I OPERACIJE ===
+ID,Naziv Operacije / Dorade,Stroj / Alat,Jedinica Mjere,Trošak Po Jedinici (EUR),Fiksni Setup (EUR),Preporučena Marža (%)
+DOR-01,Plastifikacija Mat / Sjaj (A3/A4),A3 Plastifikator,arak,0.10,2.00,100
+DOR-02,Plastifikacija Soft Touch,A3 Plastifikator,arak,0.25,3.00,100
+DOR-03,Hladna laminacija velikog formata,Audley 160,m2,1.80,4.00,70
+DOR-04,Konturno izrezivanje naljepnica,Summa D140,m2,0.50,3.00,80
+DOR-05,Rezanje na format,Ideal 5255,rez,0.01,2.00,100
+DOR-06,Savijanje / Biganje,Ručni/Strojni,kom,0.02,2.00,100
