@@ -4,9 +4,23 @@ import math
 
 st.set_page_config(page_title="Grafika Plus - Kalkulator", layout="wide")
 
+# CSS stil za oblikovanje kartica naklada kao na slici
+st.markdown("""
+    <style>
+    .stRadio > div {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 18px;
+        font-weight: bold;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("🖨️ Grafika Plus - Prodajni Kalkulator")
 
-# Učitavanje cjenika
 @st.cache_data
 def ucitaj_cjenik():
     try:
@@ -14,137 +28,104 @@ def ucitaj_cjenik():
         df.columns = df.columns.str.strip()
         return df
     except Exception as e:
-        st.error(f"Greška pri učitavanju cjenika: {e}")
         return None
 
 df_cjenik = ucitaj_cjenik()
 
 if df_cjenik is not None:
-    # Sidebar B2B Rabat
     rabat_pct = st.sidebar.number_input("B2B Rabat klijenta (%)", min_value=0, max_value=50, value=0, step=5)
 
-    tab1, tab2, tab3 = st.tabs(["🏷️ Gotovi Proizvodi (Matrica)", "📄 Slobodni Aračni Tisak", "🎞️ Veliki Format (Rola)"])
-
-    # --- TAB 1: GOTOVI PROIZVODI PO NAKLADAMA ---
-    with tab1:
-        st.subheader("Odaberite gotov proizvod i nakladu")
-        
-        proizvodi_df = df_cjenik[df_cjenik['ID'].astype(str).str.strip().str.startswith('PRZ')]
-        
-        if not proizvodi_df.empty:
-            kategorija = st.selectbox("Kategorija proizvoda:", proizvodi_df['Kategorija'].unique())
-            filtrirani_proizvodi = proizvodi_df[proizvodi_df['Kategorija'] == kategorija]
-            
-            odabrani_proizvod = st.selectbox("Proizvod / Format:", filtrirani_proizvodi['Naziv Proizvoda'].tolist())
-            prz_red = filtrirani_proizvodi[filtrirani_proizvodi['Naziv Proizvoda'] == odabrani_proizvod].iloc[0]
-            
-            sirina_p = float(prz_red['Širina (mm)'])
-            visina_p = float(prz_red['Visina (mm)'])
-            marza_p = float(prz_red['Preporučena Marža (%)'])
-            
-            materijali_arak = df_cjenik[df_cjenik['Tip'].astype(str).str.strip() == 'arak']
-            odabrani_papir = st.selectbox("Odaberite papir:", materijali_arak['Naziv Materijala'].tolist())
-            mat_red = materijali_arak[materijali_arak['Naziv Materijala'] == odabrani_papir].iloc[0]
-            
-            st.divider()
-            st.write("### Cjenik po nakladama (EUR + PDV)")
-            
-            naklade = [100, 200, 300, 400, 500, 1000]
-            
-            arak_s, arak_v = float(mat_red['Širina (mm)']), float(mat_red['Visina (mm)'])
-            stane1 = (arak_s // sirina_p) * (arak_v // visina_p)
-            stane2 = (arak_s // visina_p) * (arak_v // sirina_p)
-            kom_po_arku = max(stane1, stane2)
-            
-            if kom_po_arku > 0:
-                cols = st.columns(len(naklade))
-                stroj_red = df_cjenik[df_cjenik['ID'].astype(str).str.strip() == 'STR-01']
-                setup_stroj = float(stroj_red.iloc[0].iloc[3]) if not stroj_red.empty else 3.0
-                klik = float(stroj_red.iloc[0].iloc[4]) if not stroj_red.empty else 0.035
-                
-                for idx, naklada in enumerate(naklade):
-                    araka = math.ceil(naklada / kom_po_arku) + 3
-                    trosak = (araka * float(mat_red['Nabavna Cijena (EUR)'])) + (araka * klik) + setup_stroj
-                    prodajna = (trosak * (1 + marza_p / 100)) * (1 - rabat_pct / 100)
-                    cijena_kom = prodajna / naklada
-                    
-                    with cols[idx]:
-                        st.metric(
-                            label=f"📦 {naklada} kom",
-                            value=f"{prodajna:.2f} €",
-                            delta=f"{cijena_kom:.3f} €/kom",
-                            delta_color="off"
-                        )
-            else:
-                st.error("Proizvod je prevelik za standardni arak!")
-        else:
-            st.info("Dodajte gotove proizvode u CSV datoteku pod sekciju '=== GOTOVI PROIZVODI ==='")
-
-    # --- TAB 2: SLOBODNI ARAČNI TISAK ---
-    with tab2:
-        st.subheader("📄 Aračni tisak (Konica Minolta C4065)")
+    st.subheader("1. ODABIR PROIZVODA I SPECIFIKACIJE")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        proizvod = st.selectbox("Proizvod / Format:", [
+            "Vizitka Standard (85x55 mm)",
+            "Vizitka Euro (90x50 mm)",
+            "Vizitka Kvadratna (55x55 mm)",
+            "Letak A6 (105x148 mm)",
+            "Letak A5 (148x210 mm)",
+            "Letak A4 (210x297 mm)"
+        ])
+    
+    with col2:
         materijali_arak = df_cjenik[df_cjenik['Tip'].astype(str).str.strip() == 'arak']
-        odabrani_mat_naziv = st.selectbox("Vrsta papira / materijala (slobodni unos):", materijali_arak['Naziv Materijala'].tolist())
-        mat_red = materijali_arak[materijali_arak['Naziv Materijala'] == odabrani_mat_naziv].iloc[0]
+        odabrani_papir = st.selectbox("Vrsta papira / materijala:", materijali_arak['Naziv Materijala'].tolist())
+        mat_red = materijali_arak[materijali_arak['Naziv Materijala'] == odabrani_papir].iloc[0]
         
-        col1, col2 = st.columns(2)
-        with col1:
-            sirina_prod = st.number_input("Širina proizvoda (mm):", value=148, key="s_arak")
-        with col2:
-            visina_prod = st.number_input("Visina proizvoda (mm):", value=105, key="v_arak")
-            
-        kolicina = st.number_input("Količina (komada):", value=500, step=50, key="k_arak")
-        marza = st.slider("Marža (%)", min_value=10, max_value=200, value=60, key="m_arak")
+    with col3:
+        tisak = st.selectbox("Tisak:", ["4/0 - Kolor jednostrano", "4/4 - Kolor obostrano"])
+        plastifikacija = st.selectbox("Zaštita / Plastifikacija:", ["Bez plastifikacije", "Mat plastifikacija 1/0", "Mat plastifikacija 1/1", "Sjaj plastifikacija 1/0"])
 
-        if st.button("🧮 Izračunaj aračni tisak", type="primary"):
-            arak_s = float(mat_red['Širina (mm)'])
-            arak_v = float(mat_red['Visina (mm)'])
-            stane1 = (arak_s // sirina_prod) * (arak_v // visina_prod)
-            stane2 = (arak_s // visina_prod) * (arak_v // sirina_prod)
-            komada_po_arku = max(stane1, stane2)
-            
-            if komada_po_arku == 0:
-                st.error("Dimenzija je veća od ulaznog formata arka!")
-            else:
-                potrebno_araka = math.ceil(kolicina / komada_po_arku) + 3
-                nabavna_cijena_arka = float(mat_red['Nabavna Cijena (EUR)'])
-                stroj_red = df_cjenik[df_cjenik['ID'].astype(str).str.strip() == 'STR-01']
-                setup_stroj = float(stroj_red.iloc[0].iloc[3]) if not stroj_red.empty else 3.0
-                klik_cijena = float(stroj_red.iloc[0].iloc[4]) if not stroj_red.empty else 0.035
-                
-                neto_trosak = (potrebno_araka * nabavna_cijena_arka) + (potrebno_araka * klik_cijena) + setup_stroj
-                vpc_osnovna = neto_trosak * (1 + marza / 100)
-                konacna_cijena = vpc_osnovna * (1 - rabat_pct / 100)
-                
-                st.success(f"**Ukupna cijena za klijenta:** {konacna_cijena:.2f} EUR + PDV")
-                st.info(f"* Cijena po komadu: {konacna_cijena/kolicina:.3f} EUR | Araka s makulaturom: {potrebno_araka}")
+    marza = st.slider("Marža (%)", min_value=10, max_value=200, value=80, step=5)
 
-    # --- TAB 3: VELIKI FORMAT ---
-    with tab3:
-        st.subheader("🎞️ Veliki format iz role (Epson SC-S40610)")
-        materijali_rola = df_cjenik[df_cjenik['Tip'].astype(str).str.strip() == 'rola']
-        odabrani_mat_naziv = st.selectbox("Materijal iz role:", materijali_rola['Naziv Materijala'].tolist(), key="m_rola")
-        mat_red = materijali_rola[materijali_rola['Naziv Materijala'] == odabrani_mat_naziv].iloc[0]
+    # Određivanje dimenzija i kapaciteta na SRA3 arku
+    if "85x55" in proizvod or "90x50" in proizvod:
+        sirina_p, visina_p, kom_po_arku = 85, 55, 24
+    elif "55x55" in proizvod:
+        sirina_p, visina_p, kom_po_arku = 55, 55, 35
+    elif "A6" in proizvod:
+        sirina_p, visina_p, kom_po_arku = 105, 148, 8
+    elif "A5" in proizvod:
+        sirina_p, visina_p, kom_po_arku = 148, 210, 4
+    elif "A4" in proizvod:
+        sirina_p, visina_p, kom_po_arku = 210, 297, 2
+    else:
+        sirina_p, visina_p, kom_po_arku = 85, 55, 24
+
+    st.divider()
+    st.subheader("2. ODABERITE NAKLADU")
+
+    # Mreža naklada kao sa slike
+    naklade = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 4000, 5000]
+    
+    stroj_red = df_cjenik[df_cjenik['ID'].astype(str).str.strip() == 'STR-01']
+    setup_stroj = float(stroj_red.iloc[0].iloc[3]) if not stroj_red.empty else 3.0
+    klik_osnovni = float(stroj_red.iloc[0].iloc[4]) if not stroj_red.empty else 0.035
+    
+    # Množitelj klika za obostrani tisak
+    množitelj_tiska = 2 if "4/4" in tisak else 1
+    klik_cijena = klik_osnovni * množitelj_tiska
+    
+    # Dodatak za plastifikaciju po arku
+    cijena_plastifikacije = 0.10 if "plastifikacija" in plastifikacija.lower() else 0.0
+    if "1/1" in plastifikacija:
+        cijena_plastifikacije *= 2
+
+    nabavna_cijena_arka = float(mat_red['Nabavna Cijena (EUR)'])
+
+    # Generiranje opcija naklada s cijenom
+    opcije_naklada = []
+    cijene_mapa = {}
+
+    for n in naklade:
+        araka = math.ceil(n / kom_po_arku)
+        trosak = (araka * nabavna_cijena_arka) + (araka * klik_cijena) + (araka * cijena_plastifikacije) + setup_stroj
+        prodajna = (trosak * (1 + marza / 100)) * (1 - rabat_pct / 100)
         
-        col1, col2 = st.columns(2)
-        with col1:
-            sirina_m = st.number_input("Širina (m):", value=1.0, step=0.1, key="s_m")
-        with col2:
-            visina_m = st.number_input("Visina / Duljina (m):", value=2.0, step=0.1, key="v_m")
-            
-        kolicina_rola = st.number_input("Količina (komada):", value=1, key="k_rola")
-        marza_rola = st.slider("Marža (%)", min_value=10, max_value=200, value=70, key="m_marza")
+        tekst_opcije = f"{n} kom  =  {prodajna:.2f} €"
+        opcije_naklada.append(tekst_opcije)
+        cijene_mapa[tekst_opcije] = (n, prodajna)
 
-        if st.button("🧮 Izračunaj veliki format", type="primary"):
-            kvadratura = sirina_m * visina_m * kolicina_rola
-            nabavna_cijena_m2 = float(mat_red['Nabavna Cijena (EUR)'])
-            stroj_red = df_cjenik[df_cjenik['ID'].astype(str).str.strip() == 'STR-02']
-            setup_epson = float(stroj_red.iloc[0].iloc[3]) if not stroj_red.empty else 5.0
-            boja_m2 = float(stroj_red.iloc[0].iloc[4]) if not stroj_red.empty else 1.20
-            
-            neto_trosak = (kvadratura * nabavna_cijena_m2) + (kvadratura * boja_m2) + setup_epson
-            vpc_osnovna = neto_trosak * (1 + marza_rola / 100)
-            konacna_cijena = vpc_osnovna * (1 - rabat_pct / 100)
-            
-            st.success(f"**Ukupno za klijenta:** {konacna_cijena:.2f} EUR + PDV")
-            st.info(f"* Cijena po m²: {konacna_cijena/kvadratura:.2f} EUR/m² | Ukupno: {kvadratura:.2f} m²")
+    # Mreža radijskih gumba u 4 stupca
+    odabrana_opcija = st.radio("Odaberite željenu količinu:", opcije_naklada, index=0)
+
+    # Prikaz odabrane stavke na dnu
+    odabrana_kolicina, odabrana_cijena = cijene_mapa[odabrana_opcija]
+    cijena_po_kom = odabrana_cijena / odabrana_kolicina
+
+    st.markdown("---")
+    col_out1, col_out2 = st.columns([2, 1])
+    with col_out1:
+        st.markdown(f"### Odabrali ste količinu: **{odabrana_kolicina} kom = {odabrana_cijena:.2f} € + PDV**")
+    with col_out2:
+        st.markdown(f"*(Cijena po komadu: **{cijena_po_kom:.3f} €**)*")
+
+    # Slobodni unos količine koja nije na popisu
+    with st.expander("Trebate količinu koja nije navedena iznad?"):
+        proizvoljna_kol = st.number_input("Unesite željenu količinu (kom):", min_value=1, value=1200, step=50)
+        araka_p = math.ceil(proizvoljna_kol / kom_po_arku)
+        trosak_p = (araka_p * nabavna_cijena_arka) + (araka_p * klik_cijena) + (araka_p * cijena_plastifikacije) + setup_stroj
+        prodajna_p = (trosak_p * (1 + marza / 100)) * (1 - rabat_pct / 100)
+        st.write(f"Cijena za **{proizvoljna_kol} kom** iznosi: **{prodajna_p:.2f} € + PDV** ({prodajna_p/proizvoljna_kol:.3f} €/kom)")
