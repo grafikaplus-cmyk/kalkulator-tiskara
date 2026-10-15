@@ -10,8 +10,10 @@ st.title("🖨️ Kalkulator Tiska & Dorade")
 @st.cache_data
 def ucitaj_cjenik():
     try:
-        # Čitanje CSV-a uz ignoriranje naslovnih redova sa ===
+        # Čitanje CSV datoteke
         df = pd.read_csv("cjenik_tiskara.csv", comment="=", skip_blank_lines=True)
+        # Čišćenje razmaka u nazivima stupaca
+        df.columns = df.columns.str.strip()
         return df
     except Exception as e:
         st.error(f"Greška pri učitavanju cjenik_tiskara.csv datoteke: {e}")
@@ -20,7 +22,7 @@ def ucitaj_cjenik():
 df_cjenik = ucitaj_cjenik()
 
 if df_cjenik is not None:
-    # B2B Rabat opcije
+    # B2B Rabat opcije u bočnoj traci
     rabat_pct = st.sidebar.number_input("B2B Rabat za klijenta (%)", min_value=0, max_value=50, value=0, step=5)
 
     tehnologija = st.radio("Odaberite tehnologiju:", ["Aračni tisak (Konica Minolta C4065)", "Veliki format iz role (Epson SC-S40610)"])
@@ -32,7 +34,7 @@ if df_cjenik is not None:
         st.subheader("📄 Aračni tisak (KM C4065)")
         
         # Filtriranje materijala za arak
-        materijali_arak = df_cjenik[df_cjenik['Tip'] == 'arak']
+        materijali_arak = df_cjenik[df_cjenik['Tip'].astype(str).str.strip() == 'arak']
         odabrani_mat_naziv = st.selectbox("Vrsta papira / materijala:", materijali_arak['Naziv Materijala'].tolist())
         mat_red = materijali_arak[materijali_arak['Naziv Materijala'] == odabrani_mat_naziv].iloc[0]
         
@@ -43,8 +45,6 @@ if df_cjenik is not None:
             visina_prod = st.number_input("Visina proizvoda (mm):", value=105)
             
         kolicina = st.number_input("Količina (komada):", value=500, step=50)
-        
-        # Podešavanje marže
         marza = st.slider("Marža (%)", min_value=10, max_value=200, value=60)
 
         if st.button("🧮 Izračunaj aračni tisak", type="primary"):
@@ -56,15 +56,20 @@ if df_cjenik is not None:
             komada_po_arku = max(stane1, stane2)
             
             if komada_po_arku == 0:
-                st.error("Dimenzija proizvoda je veća od ulaznog format arka!")
+                st.error("Dimenzija proizvoda je veća od ulaznog formata arka!")
             else:
                 potrebno_araka = math.ceil(kolicina / komada_po_arku) + 3 # +3 makulatura
                 nabavna_cijena_arka = float(mat_red['Nabavna Cijena (EUR)'])
                 
-                # Podaci o stroju (KM C4065)
-                stroj_red = df_cjenik[df_cjenik['ID'] == 'STR-01'].iloc[0]
-                setup_stroj = float(stroj_red['Fiksna Priprema / Setup (EUR)'])
-                klik_cijena = float(stroj_red['Cijena Prolaza / Boje (EUR)'])
+                # Siguran dohvat podataka za stroj KM C4065 (STR-01)
+                stroj_red = df_cjenik[df_cjenik['ID'].astype(str).str.strip() == 'STR-01']
+                
+                if not stroj_red.empty:
+                    setup_stroj = float(stroj_red.iloc[0].iloc[3])  # 4. stupac: Fiksna Priprema
+                    klik_cijena = float(stroj_red.iloc[0].iloc[4])  # 5. stupac: Cijena Prolaza/Klika
+                else:
+                    setup_stroj = 3.00
+                    klik_cijena = 0.035
                 
                 neto_trosak = (potrebno_araka * nabavna_cijena_arka) + (potrebno_araka * klik_cijena) + setup_stroj
                 vpc_osnovna = neto_trosak * (1 + marza / 100)
@@ -82,7 +87,7 @@ if df_cjenik is not None:
     else:
         st.subheader("🎞️ Veliki format iz role (Epson SC-S40610)")
         
-        materijali_rola = df_cjenik[df_cjenik['Tip'] == 'rola']
+        materijali_rola = df_cjenik[df_cjenik['Tip'].astype(str).str.strip() == 'rola']
         odabrani_mat_naziv = st.selectbox("Materijal iz role:", materijali_rola['Naziv Materijala'].tolist())
         mat_red = materijali_rola[materijali_rola['Naziv Materijala'] == odabrani_mat_naziv].iloc[0]
         
@@ -99,10 +104,15 @@ if df_cjenik is not None:
             kvadratura = sirina_m * visina_m * kolicina_rola
             nabavna_cijena_m2 = float(mat_red['Nabavna Cijena (EUR)'])
             
-            # Podaci o stroju (Epson)
-            stroj_red = df_cjenik[df_cjenik['ID'] == 'STR-02'].iloc[0]
-            setup_epson = float(stroj_red['Fiksna Priprema / Setup (EUR)'])
-            boja_m2 = float(stroj_red['Cijena Prolaza / Boje (EUR)'])
+            # Siguran dohvat podataka za stroj Epson (STR-02)
+            stroj_red = df_cjenik[df_cjenik['ID'].astype(str).str.strip() == 'STR-02']
+            
+            if not stroj_red.empty:
+                setup_epson = float(stroj_red.iloc[0].iloc[3])  # 4. stupac: Fiksna Priprema
+                boja_m2 = float(stroj_red.iloc[0].iloc[4])      # 5. stupac: Cijena Boje/m2
+            else:
+                setup_epson = 5.00
+                boja_m2 = 1.20
             
             neto_trosak = (kvadratura * nabavna_cijena_m2) + (kvadratura * boja_m2) + setup_epson
             vpc_osnovna = neto_trosak * (1 + marza_rola / 100)
