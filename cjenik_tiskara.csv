@@ -26,3 +26,11 @@ DOR-03,Hladna laminacija velikog formata,Audley 160,m2,1.80,4.00,70
 DOR-04,Konturno izrezivanje naljepnica,Summa D140,m2,0.50,3.00,80
 DOR-05,Rezanje na format,Ideal 5255,rez,0.01,2.00,100
 DOR-06,Savijanje / Biganje,Ručni/Strojni,kom,0.02,2.00,100
+
+=== GOTOVI PROIZVODI ===
+ID,Kategorija,Naziv Proizvoda,Širina (mm),Visina (mm),Preporučeni Papir,Preporučena Marža (%)
+PRZ-01,Posjetnice,Posjetnica Standard (85x55),85,55,MAT-02,100
+PRZ-02,Posjetnice,Posjetnica Euro (90x50),90,50,MAT-02,100
+PRZ-03,Letci,Letak A6 (105x148),105,148,MAT-01,70
+PRZ-04,Letci,Letak A5 (148x210),148,210,MAT-01,70
+PRZ-05,Letci,Letak Fly cut DL (99x210),99,210,MAT-01,70
